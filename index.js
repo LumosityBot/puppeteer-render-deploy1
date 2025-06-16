@@ -230,8 +230,8 @@ async function checkScoreDifference() {
         const difference = myScore - lastPlaceScore;
         console.log(`📈 Différence: ${difference} points`);
 
-        if (difference >= 800) {
-            console.log(`🛑 Différence de 800+ points atteinte (${difference}), pause de 3 heures`);
+        if (difference >= 650) {
+            console.log(`🛑 Différence de 650+ points atteinte (${difference}), pause de 3 heures`);
             await sleep(3 * 60 * 60 * 1000);
             return await checkScoreDifference();
         }
@@ -609,7 +609,6 @@ async function solveSudokuProcess() {
                     console.log(`🔁 Limite de ${MAX_SOLVED_PER_SESSION} Sudokus atteinte, réinitialisation`);
                     solvedCount = 0;
                     roundNumber = 1;
-                    await sleep(1 * 60 * 60 * 1000); // une heure de pause
                     continue;
                 }
             }
