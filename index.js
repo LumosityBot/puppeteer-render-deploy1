@@ -309,8 +309,8 @@ async function checkScoreDifference() {
         const difference = myScore - lastPlaceScore;
         console.log(`📈 Différence: ${difference} points`);
 
-        if (difference >= 650) {
-            console.log(`🛑 Différence de 650+ points atteinte (${difference}), pause de 3 heures`);
+        if (difference >= 1500) {
+            console.log(`🛑 Différence de 1500+ points atteinte (${difference}), pause de 3 heures`);
             await sleep(3 * 60 * 60 * 1000);
             return await checkScoreDifference();
         }
@@ -603,19 +603,14 @@ async function solveSudokuProcess() {
         const maxRetries = 3;
 
         while (true) {
-            if (solvedCount > 0 && (solvedCount % 50 === 0 || solvedCount >= MAX_SOLVED_PER_SESSION)) {
+            if (solvedCount >= MAX_SOLVED_PER_SESSION)) {
                 const shouldContinue = await checkScoreDifference();
                 await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
                 await sleep(3000);
-                
-                if (!shouldContinue) continue;
-
-                if (solvedCount >= MAX_SOLVED_PER_SESSION) {
-                    console.log(`🔁 Limite de ${MAX_SOLVED_PER_SESSION} Sudokus atteinte, réinitialisation`);
-                    solvedCount = 0;
-                    roundNumber = 1;
-                    continue;
-                }
+            
+                solvedCount = 0;
+                roundNumber = 1;
+                continue;
             }
 
             let retries = 0;
