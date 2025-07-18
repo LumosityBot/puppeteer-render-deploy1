@@ -603,7 +603,7 @@ async function solveSudokuProcess() {
         const maxRetries = 3;
 
         while (true) {
-            if (solvedCount >= MAX_SOLVED_PER_SESSION)) {
+            if (solvedCount >= MAX_SOLVED_PER_SESSION) {
                 const shouldContinue = await checkScoreDifference();
                 await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
                 await sleep(3000);
