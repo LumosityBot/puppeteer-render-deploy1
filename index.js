@@ -12,7 +12,7 @@ app.use(express.json());
 
 // Configuration
 const COOKIE_FILE = 'cookies.json';
-const MAX_SOLVED_PER_SESSION = 300;
+const MAX_SOLVED_PER_SESSION = 1000;
 const GAME_URL = "https://sudoku.lumitelburundi.com/game";
 const BASE_URL = "https://sudoku.lumitelburundi.com";
 
@@ -272,7 +272,7 @@ function convertTo1D(board) {
     return board.flat();
 }
 
-async function checkScoreDifference() {
+/*async function checkScoreDifference() {
     try {
         console.log("🔍 Vérification des scores...");
         await currentPage.goto(BASE_URL, { waitUntil: "networkidle2" });
@@ -320,7 +320,7 @@ async function checkScoreDifference() {
         console.error("Erreur lors de la vérification des scores:", error);
         return true;
     }
-}
+}*/
 
 async function handleLogin(cookiesLoaded = false, maxAttempts = 3) {
     let attempt = 0;
@@ -604,9 +604,9 @@ async function solveSudokuProcess() {
 
         while (true) {
             if (solvedCount >= MAX_SOLVED_PER_SESSION) {
-                const shouldContinue = await checkScoreDifference();
+                /*const shouldContinue = await checkScoreDifference();
                 await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
-                await sleep(3000);
+                await sleep(3000);*/
             
                 solvedCount = 0;
                 roundNumber = 1;
