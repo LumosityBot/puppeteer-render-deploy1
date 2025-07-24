@@ -635,6 +635,8 @@ async function solveSudokuProcess() {
                     console.log("🔄 Rafraîchissement de la page principale...");
                     /*await currentPage.reload({ waitUntil: "networkidle2" });
                     await sleep(3000);*/
+                    await resetBrowser();
+                    await handleLogin(false);
                     await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
                     await sleep(3000);
                 }
