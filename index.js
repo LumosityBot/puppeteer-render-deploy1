@@ -417,7 +417,9 @@ async function getSudokuGrid() {
             await currentPage.waitForFunction(() => document.readyState === 'complete', { timeout: 5000 });
         } catch (e) {
             console.log("⚠ La page ne répond pas, tentative de rafraîchissement...");
-            await currentPage.reload({ waitUntil: "networkidle2" });
+            /*await currentPage.reload({ waitUntil: "networkidle2" });
+            await sleep(3000);*/
+            await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
             await sleep(3000);
         }
 
@@ -507,7 +509,9 @@ async function solveOneSudoku(roundNumber) {
         let gridValues = await getSudokuGrid();
         if (!gridValues) {
             console.log("🔄 Rafraîchissement de la page...");
-            await currentPage.reload({ waitUntil: "networkidle2" });
+            /*await currentPage.reload({ waitUntil: "networkidle2" });
+            await sleep(3000);*/
+            await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
             await sleep(3000);
             gridValues = await getSudokuGrid();
             if (!gridValues) return false;
@@ -532,7 +536,9 @@ async function solveOneSudoku(roundNumber) {
         const stillThere = await getSudokuGrid();
         if (!stillThere) {
             console.log("Rechargement de la page...");
-            await currentPage.reload({ waitUntil: "networkidle2" });
+            /*await currentPage.reload({ waitUntil: "networkidle2" });
+            await sleep(3000);*/
+            await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
             await sleep(3000);
             if (!await getSudokuGrid()) return false;
         }
@@ -607,7 +613,10 @@ async function solveSudokuProcess() {
                 /*const shouldContinue = await checkScoreDifference();
                 await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
                 await sleep(3000);*/
-            
+
+                await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
+                await sleep(3000);
+                
                 solvedCount = 0;
                 roundNumber = 1;
                 continue;
@@ -624,7 +633,9 @@ async function solveSudokuProcess() {
                     
                     // Rafraîchir la page avant de réessayer
                     console.log("🔄 Rafraîchissement de la page principale...");
-                    await currentPage.reload({ waitUntil: "networkidle2" });
+                    /*await currentPage.reload({ waitUntil: "networkidle2" });
+                    await sleep(3000);*/
+                    await currentPage.goto(GAME_URL, { waitUntil: "networkidle2" });
                     await sleep(3000);
                 }
             }
