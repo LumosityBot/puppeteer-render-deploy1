@@ -22,6 +22,7 @@ class MultiGameBot {
         this.roomCode = this.gameConfig.roomCode;
         this.delayBetweenScores = this.gameConfig.delayBetweenScores;
         this.sequences = this.gameConfig.sequences;
+        this.hasMaxScore = this.gameConfig.hasMaxScore || false;
 
         this.browser = null;
         this.page = null;
@@ -276,16 +277,19 @@ class MultiGameBot {
     generateGameScript(sequence) {
         const sequenceStr = JSON.stringify(sequence);
         const delayMs = this.delayBetweenScores * 1000;
+        const hasMaxScore = this.hasMaxScore;
 
         return `
 (async function() {
     const sequence = ${sequenceStr};
     const DELAY_BETWEEN_SCORES = ${delayMs};
     const ROOM_CODE = "${this.roomCode}";
+    const HAS_MAX_SCORE = ${hasMaxScore};
     
     console.log('🎳 Démarrage du jeu automatique');
     console.log('📊 Séquence:', sequence);
     console.log('🎯 Score final:', sequence[sequence.length - 1]);
+    console.log('🔒 Vérification max score:', HAS_MAX_SCORE);
     
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -298,6 +302,18 @@ class MultiGameBot {
     if (typeof signalRService === 'undefined') {
         console.error('❌ signalRService non disponible!');
         return;
+    }
+    
+    // Récupérer le score maximum si activé
+    let maxScore = null;
+    if (HAS_MAX_SCORE) {
+        const maxScoreInput = document.getElementById('maxS');
+        if (maxScoreInput) {
+            maxScore = parseInt(maxScoreInput.value);
+            console.log('📈 Score maximum détecté:', maxScore);
+        } else {
+            console.warn('⚠️ Élément maxS non trouvé, continue sans limitation');
+        }
     }
     
     async function sendScoreRealTime(score) {
@@ -361,23 +377,52 @@ class MultiGameBot {
     
     try {
         console.log('🚀 Début de la séquence...');
+        let shouldBreak = false;
         
         for (let i = 0; i < sequence.length - 1; i++) {
-            const score = sequence[i];
+            let score = sequence[i];
+            
+            // Vérifier si le score dépasse le maximum
+            if (HAS_MAX_SCORE && maxScore !== null && score > maxScore) {
+                // Générer un score aléatoire entre (maxScore - 100) et (maxScore - 10)
+                const randomScore = Math.floor(Math.random() * 90) + (maxScore - 100);
+                console.log(\`⚠️ Score \${score} dépasse le max \${maxScore}, envoi de \${randomScore} à la place\`);
+                score = randomScore;
+                shouldBreak = true;
+            }
+            
             console.log(\`🎯 Envoi score \${i + 1}/\${sequence.length - 1}: \${score}\`);
             
             await sendScoreRealTime(score);
+            
+            // Si on a dépassé le max, on arrête la boucle
+            if (shouldBreak) {
+                console.log('🛑 Score maximum atteint, arrêt de la séquence');
+                console.log('🏁 Envoi du score final ajusté...');
+                await sleep(100);
+                await sendFinalScore(score);
+                return; // Sortir complètement de la fonction
+            }
             
             if (i < sequence.length - 2) {
                 await sleep(DELAY_BETWEEN_SCORES);
             }
         }
         
+        // Si on arrive ici, c'est qu'on n'a pas dépassé le max
         console.log('🏁 Tous les scores temps réel envoyés !');
         await sleep(100);
         
         const finalScore = sequence[sequence.length - 1];
-        await sendFinalScore(finalScore);
+        
+        // Vérifier une dernière fois le score final
+        if (HAS_MAX_SCORE && maxScore !== null && finalScore > maxScore) {
+            const randomScore = Math.floor(Math.random() * 90) + (maxScore - 100);
+            console.log(\`⚠️ Score final \${finalScore} dépasse le max \${maxScore}, envoi de \${randomScore}\`);
+            await sendFinalScore(randomScore);
+        } else {
+            await sendFinalScore(finalScore);
+        }
         
     } catch (error) {
         console.error('❌ Erreur dans la boucle principale:', error);
