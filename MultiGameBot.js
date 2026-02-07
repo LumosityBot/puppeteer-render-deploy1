@@ -469,18 +469,19 @@ class MultiGameBot {
                 this.addLog('Tentative de continuation...', 'info');
             }
 
-            // Attendre la fin de la partie avec un temps généreux
-            const waitTime = (sequence.length * this.delayBetweenScores + 60) * 1000; // +60s au lieu de +30s
-            this.addLog(`⏳ Attente de fin de partie (~${waitTime/1000}s)...`, 'info');
+            // // Attendre la fin de la partie avec un temps généreux
+            // const waitTime = (sequence.length * this.delayBetweenScores + 60) * 1000; // +60s au lieu de +30s
+            // this.addLog(`⏳ Attente de fin de partie (~${waitTime/1000}s)...`, 'info');
 
-            // Affichage de la progression toutes les 30 secondes
-            const startWait = Date.now();
-            while (Date.now() - startWait < waitTime) {
-                await this.sleep(30000); // 30 secondes
-                const elapsed = Math.floor((Date.now() - startWait) / 1000);
-                const remaining = Math.floor((waitTime - (Date.now() - startWait)) / 1000);
-                this.addLog(`⏱️ Écoulé: ${elapsed}s / Restant: ~${remaining}s`, 'info');
-            }
+            // // Affichage de la progression toutes les 30 secondes
+            // const startWait = Date.now();
+            // while (Date.now() - startWait < waitTime) {
+            //     await this.sleep(30000); // 30 secondes
+            //     const elapsed = Math.floor((Date.now() - startWait) / 1000);
+            //     const remaining = Math.floor((waitTime - (Date.now() - startWait)) / 1000);
+            //     this.addLog(`⏱️ Écoulé: ${elapsed}s / Restant: ~${remaining}s`, 'info');
+            // }
+            await this.sleep(GENERAL_CONFIG.pageLoadWait); // Juste pour la redirection
 
             this.addLog('🎉 Partie terminée!', 'success');
 
