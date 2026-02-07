@@ -95,5 +95,5 @@ export const GAMES_CONFIG = {
 
 export const GENERAL_CONFIG = {
     maxLoginAttempts: 3,
-    pageLoadWait: 5000 // millisecondes
+    pageLoadWait: 15000 // 15 secondes (augmenté de 5s)
 };
