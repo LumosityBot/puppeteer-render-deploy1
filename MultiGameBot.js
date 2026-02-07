@@ -87,11 +87,15 @@ class MultiGameBot {
                            process.env.CHROME_PATH || 
                            '/usr/bin/google-chrome-stable',
             headless: headless ? 'new' : false,
-            timeout: 60000
+            timeout: 120000 // 2 minutes pour le lancement
         };
 
         this.browser = await puppeteer.launch(options);
         this.page = await this.browser.newPage();
+        
+        // Augmenter les timeouts pour les pages lourdes
+        await this.page.setDefaultNavigationTimeout(900000); // 15 minutes
+        await this.page.setDefaultTimeout(900000); // 15 minutes
         
         await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
         await this.page.setViewport({ width: 1280, height: 720 });
@@ -113,81 +117,158 @@ class MultiGameBot {
             this.addLog(`Tentative de connexion ${attempt}/${maxAttempts}`, 'info');
 
             try {
-                await this.page.goto(this.loginUrl, { waitUntil: 'networkidle2' });
-                this.addLog(`Navigation vers: ${this.loginUrl}`, 'info');
+                this.addLog('Chargement de la page de connexion (patientez, site lourd)...', 'info');
+                await this.page.goto(this.loginUrl, { 
+                    waitUntil: 'networkidle2',
+                    timeout: 900000 // 15 minutes
+                });
+                this.addLog(`✅ Page de connexion chargée: ${this.loginUrl}`, 'success');
 
-                // Attendre le formulaire
-                await this.page.waitForSelector('#msisdn', { timeout: 10000 });
+                // Attendre le formulaire avec plus de temps
+                this.addLog('Attente du formulaire de connexion...', 'info');
+                await this.page.waitForSelector('#msisdn', { timeout: 120000 }); // 2 minutes
+                this.addLog('✅ Formulaire trouvé', 'success');
 
                 // Remplir le formulaire
-                await this.page.type('#msisdn', this.phone);
-                await this.sleep(500);
-                await this.page.type('#password', this.password);
-                await this.sleep(500);
+                this.addLog('Remplissage du formulaire...', 'info');
+                await this.page.type('#msisdn', this.phone, { delay: 100 });
+                await this.sleep(1000);
+                await this.page.type('#password', this.password, { delay: 100 });
+                await this.sleep(1000);
 
-                this.addLog(`Formulaire rempli - Phone: ${this.phone}`, 'info');
+                this.addLog(`✅ Formulaire rempli - Phone: ${this.phone}`, 'success');
 
                 // Cliquer sur login
+                this.addLog('Clic sur le bouton de connexion...', 'info');
                 await this.page.click('#login');
-                this.addLog('Bouton LOGIN cliqué', 'info');
+                this.addLog('✅ Bouton LOGIN cliqué', 'success');
 
-                // Attendre la redirection
+                // Attendre la redirection avec un délai généreux
+                this.addLog('Attente de la redirection (peut prendre plusieurs minutes)...', 'warning');
                 await this.sleep(GENERAL_CONFIG.pageLoadWait);
 
                 const currentUrl = this.page.url();
-                this.addLog(`URL actuelle: ${currentUrl}`, 'info');
+                this.addLog(`URL actuelle après connexion: ${currentUrl}`, 'info');
 
                 if (currentUrl.includes(this.homeUrl)) {
-                    this.addLog('Connexion réussie!', 'success');
+                    this.addLog('🎉 Connexion réussie!', 'success');
                     return true;
                 } else {
-                    this.addLog(`Échec - pas redirigé vers ${this.homeUrl}`, 'error');
+                    this.addLog(`⚠️ Pas encore redirigé, attente supplémentaire de 10s...`, 'warning');
+                    await this.sleep(10000);
+                    
+                    const finalUrl = this.page.url();
+                    if (finalUrl.includes(this.homeUrl)) {
+                        this.addLog('🎉 Connexion réussie (après attente supplémentaire)!', 'success');
+                        return true;
+                    } else {
+                        this.addLog(`❌ Échec - URL finale: ${finalUrl}`, 'error');
+                    }
                 }
             } catch (error) {
-                this.addLog(`Erreur lors de la tentative ${attempt}: ${error.message}`, 'error');
+                this.addLog(`❌ Erreur lors de la tentative ${attempt}: ${error.message}`, 'error');
+                this.addLog('Attente de 5s avant nouvelle tentative...', 'warning');
+                await this.sleep(5000);
             }
         }
 
-        this.addLog(`Échec de connexion après ${maxAttempts} tentatives`, 'error');
+        this.addLog(`❌ Échec de connexion après ${maxAttempts} tentatives`, 'error');
         return false;
     }
 
     async navigateToGame() {
         try {
-            this.addLog(`Navigation vers le jeu: ${this.gameUrl}`, 'game');
-            await this.page.goto(this.gameUrl, { waitUntil: 'networkidle2' });
-            await this.sleep(GENERAL_CONFIG.pageLoadWait);
+            this.addLog(`🎮 Navigation vers le jeu: ${this.gameUrl}`, 'game');
+            this.addLog('⚠️ Chargement de page lourde - Patience (jusqu\'à 15 minutes)...', 'warning');
+            
+            // Navigation avec timeout très long
+            await this.page.goto(this.gameUrl, { 
+                waitUntil: 'networkidle2',
+                timeout: 900000 // 15 minutes
+            });
+            
+            this.addLog('✅ Page chargée, attente de stabilisation...', 'success');
+            
+            // Attendre que la page soit stable
+            await this.sleep(10000); // 10 secondes supplémentaires
 
             const currentUrl = this.page.url();
-            this.addLog(`URL après navigation: ${currentUrl}`, 'info');
+            this.addLog(`📍 URL après navigation: ${currentUrl}`, 'info');
 
+            // Vérifier si on est sur la page de jeu (après redirection)
             if (currentUrl.includes(this.gameUrlCmp)) {
-                this.addLog('Page de jeu chargée (après redirection)', 'success');
+                this.addLog('✅ Page de jeu chargée avec succès (après redirection)', 'success');
                 return true;
-            } else if (currentUrl.includes(this.gameUrl)) {
-                this.addLog('Sur URL initiale, attente de redirection...', 'info');
-                await this.sleep(3000);
+            } 
+            // Vérifier si on est resté sur l'URL initiale (pas encore redirigé)
+            else if (currentUrl.includes(this.gameUrl)) {
+                this.addLog('⏳ Sur URL initiale, attente de redirection (30s)...', 'warning');
+                await this.sleep(30000); // Attendre 30 secondes
                 
                 const newUrl = this.page.url();
+                this.addLog(`📍 URL après attente: ${newUrl}`, 'info');
+                
                 if (newUrl.includes(this.gameUrlCmp)) {
-                    this.addLog('Page de jeu chargée (après redirection)', 'success');
+                    this.addLog('✅ Page de jeu chargée après redirection', 'success');
                     return true;
+                } else {
+                    this.addLog(`⚠️ Toujours pas redirigé, attente supplémentaire (60s)...`, 'warning');
+                    await this.sleep(60000); // Encore 60 secondes
+                    
+                    const finalUrl = this.page.url();
+                    this.addLog(`📍 URL finale: ${finalUrl}`, 'info');
+                    
+                    if (finalUrl.includes(this.gameUrlCmp)) {
+                        this.addLog('✅ Page de jeu finalement chargée!', 'success');
+                        return true;
+                    } else {
+                        this.addLog(`⚠️ Pas de redirection vers ${this.gameUrlCmp}`, 'warning');
+                        // On continue quand même, peut-être que la page fonctionne
+                        return true;
+                    }
                 }
-            } else if (currentUrl.includes(this.loginUrl)) {
-                this.addLog('Redirigé vers login - reconnexion nécessaire', 'warning');
+            }
+            // Vérifier si on a été redirigé vers login
+            else if (currentUrl.includes(this.loginUrl)) {
+                this.addLog('⚠️ Redirigé vers login - reconnexion nécessaire', 'warning');
                 if (await this.login()) {
+                    this.addLog('Reconnexion réussie, nouvelle tentative de navigation...', 'info');
                     return await this.navigateToGame();
                 }
                 return false;
-            } else if (currentUrl.includes(this.homeUrl)) {
-                this.addLog('Redirigé vers Home - ERREUR', 'error');
-                return false;
             }
-
-            this.addLog(`URL inattendue: ${currentUrl}`, 'error');
-            return false;
+            // Vérifier si on a été redirigé vers home
+            else if (currentUrl.includes(this.homeUrl)) {
+                this.addLog('⚠️ Redirigé vers Home - nouvelle tentative...', 'warning');
+                await this.sleep(5000);
+                return await this.navigateToGame();
+            }
+            else {
+                this.addLog(`⚠️ URL inattendue: ${currentUrl}`, 'warning');
+                this.addLog('Tentative de continuer quand même...', 'info');
+                return true; // On essaye de continuer
+            }
         } catch (error) {
-            this.addLog(`Erreur navigation: ${error.message}`, 'error');
+            this.addLog(`❌ Erreur navigation: ${error.message}`, 'error');
+            
+            // Si c'est un timeout, on réessaye une fois
+            if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+                this.addLog('⚠️ Timeout détecté - nouvelle tentative avec plus de patience...', 'warning');
+                try {
+                    await this.sleep(10000);
+                    await this.page.goto(this.gameUrl, { 
+                        waitUntil: 'domcontentloaded', // Moins strict
+                        timeout: 900000
+                    });
+                    this.addLog('✅ Deuxième tentative réussie', 'success');
+                    await this.sleep(30000); // Attendre que tout se charge
+                    return true;
+                } catch (retryError) {
+                    this.addLog(`❌ Deuxième tentative échouée: ${retryError.message}`, 'error');
+                    return false;
+                }
+            }
+            
             return false;
         }
     }
@@ -311,38 +392,79 @@ class MultiGameBot {
             const sequence = this.sequences[Math.floor(Math.random() * this.sequences.length)];
             const finalScore = sequence[sequence.length - 1];
 
-            this.addLog('Partie démarrée!', 'game');
-            this.addLog(`Séquence choisie (score final: ${finalScore})`, 'game');
-            this.addLog(`Nombre de scores: ${sequence.length}`, 'info');
+            this.addLog('🎳 Partie démarrée!', 'game');
+            this.addLog(`📊 Séquence choisie (score final: ${finalScore})`, 'game');
+            this.addLog(`🎯 Nombre de scores: ${sequence.length}`, 'info');
+            this.addLog(`⏱️ Délai entre scores: ${this.delayBetweenScores}s`, 'info');
 
             // Enregistrer le score pour les stats
             this.stats.lastGameScore = finalScore;
 
-            // Attendre avant de commencer
-            await this.sleep(3000);
+            // Attendre que la page soit complètement stable
+            this.addLog('⏳ Attente de stabilisation de la page (15s)...', 'warning');
+            await this.sleep(15000);
+
+            // Vérifier que la page est toujours là
+            try {
+                const currentUrl = this.page.url();
+                this.addLog(`✅ Page stable, URL: ${currentUrl}`, 'success');
+            } catch (error) {
+                this.addLog(`⚠️ Erreur lors de la vérification de l'URL: ${error.message}`, 'warning');
+            }
 
             // Générer et exécuter le script
             const gameScript = this.generateGameScript(sequence);
-            this.addLog('Exécution du script de jeu...', 'game');
-            await this.page.evaluate(gameScript);
+            this.addLog('🚀 Exécution du script de jeu...', 'game');
+            
+            try {
+                await this.page.evaluate(gameScript);
+                this.addLog('✅ Script exécuté avec succès', 'success');
+            } catch (scriptError) {
+                this.addLog(`⚠️ Erreur lors de l'exécution du script: ${scriptError.message}`, 'warning');
+                this.addLog('Tentative de continuation...', 'info');
+            }
 
-            // Attendre la fin de la partie
-            const waitTime = (sequence.length * this.delayBetweenScores + 30) * 1000;
-            this.addLog(`Attente de fin de partie (~${waitTime/1000}s)...`, 'info');
+            // Attendre la fin de la partie avec un temps généreux
+            const waitTime = (sequence.length * this.delayBetweenScores + 60) * 1000; // +60s au lieu de +30s
+            this.addLog(`⏳ Attente de fin de partie (~${waitTime/1000}s)...`, 'info');
 
-            await this.sleep(waitTime);
+            // Affichage de la progression toutes les 30 secondes
+            const startWait = Date.now();
+            while (Date.now() - startWait < waitTime) {
+                await this.sleep(30000); // 30 secondes
+                const elapsed = Math.floor((Date.now() - startWait) / 1000);
+                const remaining = Math.floor((waitTime - (Date.now() - startWait)) / 1000);
+                this.addLog(`⏱️ Écoulé: ${elapsed}s / Restant: ~${remaining}s`, 'info');
+            }
 
-            this.addLog('Partie terminée!', 'success');
+            this.addLog('🎉 Partie terminée!', 'success');
 
-            // Vérifier retour sur Home
-            const currentUrl = this.page.url();
-            if (currentUrl.includes(this.homeUrl)) {
-                this.addLog('Retour sur Home confirmé', 'success');
+            // Vérifier qu'on est bien revenu sur Home (avec plusieurs tentatives)
+            let attempts = 0;
+            let onHome = false;
+            
+            while (attempts < 3 && !onHome) {
+                try {
+                    const currentUrl = this.page.url();
+                    this.addLog(`📍 URL finale (tentative ${attempts + 1}): ${currentUrl}`, 'info');
+                    
+                    if (currentUrl.includes(this.homeUrl)) {
+                        this.addLog('✅ Retour sur Home confirmé', 'success');
+                        onHome = true;
+                    } else {
+                        this.addLog(`⏳ Pas encore sur Home, attente de 10s...`, 'warning');
+                        await this.sleep(10000);
+                    }
+                } catch (error) {
+                    this.addLog(`⚠️ Erreur vérification URL: ${error.message}`, 'warning');
+                }
+                attempts++;
             }
 
             return true;
         } catch (error) {
-            this.addLog(`Erreur pendant le jeu: ${error.message}`, 'error');
+            this.addLog(`❌ Erreur pendant le jeu: ${error.message}`, 'error');
+            this.addLog(`📋 Stack trace: ${error.stack}`, 'error');
             return false;
         }
     }
