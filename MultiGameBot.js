@@ -88,7 +88,8 @@ class MultiGameBot {
                            process.env.CHROME_PATH || 
                            '/usr/bin/google-chrome-stable',
             headless: headless ? 'new' : false,
-            timeout: 120000 // 2 minutes pour le lancement
+            timeout: 120000, // 2 minutes pour le lancement
+            protocolTimeout: 900000 // ← AJOUTER ÇA (15 minutes)
         };
 
         this.browser = await puppeteer.launch(options);
