@@ -287,11 +287,6 @@ class MultiGameBot {
     const ROOM_CODE = "${this.roomCode}";
     const HAS_MAX_SCORE = ${hasMaxScore};
     
-    console.log('🎳 Démarrage du jeu automatique');
-    console.log('📊 Séquence:', sequence);
-    console.log('🎯 Score final:', sequence[sequence.length - 1]);
-    console.log('🔒 Vérification max score:', HAS_MAX_SCORE);
-    
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -311,9 +306,9 @@ class MultiGameBot {
         const maxScoreInput = document.getElementById('maxS');
         if (maxScoreInput) {
             maxScore = parseInt(maxScoreInput.value);
-            console.log('📈 Score maximum détecté:', maxScore);
+            console.log('🎯 Score maximum autorisé:', maxScore);
         } else {
-            console.warn('⚠️ Élément maxS non trouvé, continue sans limitation');
+            console.warn('⚠️ Input #maxS non trouvé, continue sans limitation');
         }
     }
     
@@ -336,6 +331,8 @@ class MultiGameBot {
     
     async function sendFinalScore(score) {
         try {
+            await sleep(100);
+            
             console.log(\`📤 Envoi score FINAL: \${score}\`);
             
             const encoder = new Cjfs();
@@ -378,48 +375,69 @@ class MultiGameBot {
     
     try {
         console.log('🚀 Début de la séquence...');
-        let shouldBreak = false;
         
-        for (let i = 0; i < sequence.length - 1; i++) {
+        let shouldBreak = false;
+        let lastSentScore = 0;
+        
+        // Boucle pour TOUS les scores (pas sequence.length - 1)
+        for (let i = 0; i < sequence.length; i++) {
             let score = sequence[i];
+            
+            // Sleep AVANT l'envoi
+            await sleep(DELAY_BETWEEN_SCORES);
             
             // Vérifier si le score dépasse le maximum
             if (HAS_MAX_SCORE && maxScore !== null && score > maxScore) {
-                // Générer un score aléatoire entre (maxScore - 100) et (maxScore - 10)
-                const randomScore = Math.floor(Math.random() * 90) + (maxScore - 100);
-                console.log(\`⚠️ Score \${score} dépasse le max \${maxScore}, envoi de \${randomScore} à la place\`);
+                console.warn(\`⚠️ Score \${score} dépasse le maximum \${maxScore}\`);
+                console.log(\`📊 Dernier score envoyé: \${lastSentScore}\`);
+                
+                // Logique adaptative
+                let randomScore;
+                if (lastSentScore < maxScore - 100) {
+                    // Cas 1: random entre (maxScore - 100) et (maxScore - 10)
+                    randomScore = Math.floor(Math.random() * 90) + (maxScore - 100);
+                } else {
+                    // Cas 2: random entre lastSentScore et maxScore
+                    randomScore = Math.floor(Math.random() * (maxScore - lastSentScore + 1)) + lastSentScore;
+                }
+                
                 score = randomScore;
+                console.log(\`🔄 Score ajusté à: \${score}\`);
                 shouldBreak = true;
             }
             
-            console.log(\`🎯 Envoi score \${i + 1}/\${sequence.length - 1}: \${score}\`);
+            console.log(\`🎯 Envoi score \${i + 1}/\${sequence.length}: \${score}\`);
             
             await sendScoreRealTime(score);
+            lastSentScore = score;
             
-            // Si on a dépassé le max, on arrête la boucle
+            // Si on a dépassé le max, envoyer le final et sortir
             if (shouldBreak) {
                 console.log('🛑 Score maximum atteint, arrêt de la séquence');
-                console.log('🏁 Envoi du score final ajusté...');
-                await sleep(100);
                 await sendFinalScore(score);
-                return; // Sortir complètement de la fonction
-            }
-            
-            if (i < sequence.length - 2) {
-                await sleep(DELAY_BETWEEN_SCORES);
+                return;
             }
         }
         
-        // Si on arrive ici, c'est qu'on n'a pas dépassé le max
-        console.log('🏁 Tous les scores temps réel envoyés !');
-        await sleep(100);
+        // Si on arrive ici, aucun score n'a dépassé le max
+        console.log('🏁 Tous les scores envoyés !');
         
         const finalScore = sequence[sequence.length - 1];
         
         // Vérifier une dernière fois le score final
         if (HAS_MAX_SCORE && maxScore !== null && finalScore > maxScore) {
-            const randomScore = Math.floor(Math.random() * 90) + (maxScore - 100);
-            console.log(\`⚠️ Score final \${finalScore} dépasse le max \${maxScore}, envoi de \${randomScore}\`);
+            console.warn(\`⚠️ Score final \${finalScore} dépasse le maximum \${maxScore}\`);
+            console.log(\`📊 Dernier score envoyé: \${lastSentScore}\`);
+            
+            // Même logique adaptative
+            let randomScore;
+            if (lastSentScore < maxScore - 100) {
+                randomScore = Math.floor(Math.random() * 90) + (maxScore - 100);
+            } else {
+                randomScore = Math.floor(Math.random() * (maxScore - lastSentScore + 1)) + lastSentScore;
+            }
+            
+            console.log(\`🔄 Score final ajusté à: \${randomScore}\`);
             await sendFinalScore(randomScore);
         } else {
             await sendFinalScore(finalScore);
