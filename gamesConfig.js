@@ -571,7 +571,7 @@ export const GAMES_CONFIG = {
         "gameUrlCmp": "https://keeper.lumitel.bi/Keeper/Playgame",
         "roomCode": "binhbh",
         "delayBetweenScores": 4,
-        "hasMaxScore": False,
+        "hasMaxScore": false,
         "sequences": [
             [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 105]
         ]
@@ -585,7 +585,7 @@ export const GAMES_CONFIG = {
         "gameUrlCmp": "https://racer.lumitel.bi/Racer/Playgame",
         "roomCode": "binhbh",
         "delayBetweenScores": 4,
-        "hasMaxScore": True,
+        "hasMaxScore": true,
         "sequences": [
             [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000,
@@ -677,7 +677,7 @@ export const GAMES_CONFIG = {
         "gameUrlCmp": "https://basketball.lumitel.bi/Basketball/Playgame",
         "roomCode": "binhbh",
         "delayBetweenScores": 1,
-        "hasMaxScore": True,
+        "hasMaxScore": true,
         "sequences": [
             [
                 1, 2, 3, 4, 6,
@@ -704,7 +704,7 @@ export const GAMES_CONFIG = {
         "gameUrlCmp": "https://watecraft.lumitel.bi/Watecraft/Playgame", 
         "roomCode": "binhbh",
         "delayBetweenScores": 3,
-        "hasMaxScore": True,
+        "hasMaxScore": true,
         "sequences": [
             [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000,
